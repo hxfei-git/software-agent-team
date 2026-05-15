@@ -113,7 +113,7 @@ sw-delivery-reviewer
 
 ## 推荐启动提示词
 
-把下面内容发给 Claude Code，替换项目名和需求：
+把下面内容发给 Claude Code，替换项目名和需求。团队会先整理 `requirements.md` 并复述理解，等你确认后再自动开发。
 
 ```text
 请使用 master_agent.md 中的软件项目多智能体交付系统，从头完成当前项目。
@@ -121,43 +121,23 @@ sw-delivery-reviewer
 项目名：my-project
 PROJECT_DIR=/home/ubuntu/1.project/my-project
 
-需求已确认，进入自动交付模式。PROJECT_DIR 内不需要再问我批准，也不需要中途等待我确认。
-默认全程使用中文和我沟通；所有团队文档、日志、测试报告和交付报告也使用中文。代码、命令、文件名和错误信息保持原文。
-
-强制要求：
-1. 主 Agent 只做 PM、调度、日志和状态管理，不得直接写业务代码。
-2. 必须使用 sw-architect 生成 architecture.md、dev-plan.md、testing-strategy.md。
-3. 必须使用 sw-developer 完成开发任务。
-4. sw-developer 必须通过 codex-software-worker skill 调用 /codex:rescue 委托 Codex 处理子任务。
-5. 必须使用 sw-tester 写测试报告。
-6. 必须使用 sw-code-reviewer 写审查报告。
-7. 必须使用 sw-delivery-reviewer 生成 delivery-report.md。
-8. 每次启动或完成子 Agent，都必须在 team-log.md 记录：任务ID、Agent名称、Agent ID、报告路径、Codex 调用证据。
-9. 没有 Agent ID 和 Codex 调用证据的开发任务，不得标记完成。
-10. 如果 Codex 或某个 Agent 无法调用，必须记录为阻塞项，但继续完成可执行部分，最终写入 delivery-report.md。
-
 项目需求：
 {在这里写需求}
 
+明确不做：
+{可选：写不希望实现的功能、行为或交付物}
+
+技术约束：
+{可选：写技术栈、运行环境、数据格式、接口、兼容性等约束}
+
 验收标准：
 {在这里写验收标准}
+
+请先不要开发。先把我的原始需求整理为 requirements.md，保留原始需求摘录，写出团队理解版需求，并为每条需求和验收标准分配 Rxx / Axx ID。
+然后用中文向我展示简短确认摘要：项目目标、使用场景、功能范围、非目标范围、输入输出或接口边界、技术约束、交付物、验收标准、风险与假设。
+等我明确回复“确认”后，再进入自动交付模式，启动架构、开发、测试、审查和交付流程。
 ```
 
-## 自动交付模式
-
-需求确认后，主 Agent 进入自动交付模式：
-
-- 在 `PROJECT_DIR` 内创建、修改、移动项目文件。
-- 运行测试、构建、lint、typecheck、格式化等命令。
-- 失败后自动 resume 开发 Agent 修复，最多 3 轮。
-- 第 3 轮仍失败时标记 `⚠️ 低质量通过`，继续后续任务，并在交付报告中说明风险。
-- 遇到账号、密钥、外部系统权限等无法自动解决的问题时，标记 `❌ 阻塞`，继续可执行任务。
-
-禁止：
-
-- 修改或删除 `PROJECT_DIR` 之外的用户文件。
-- 把密码、token、密钥写入仓库或日志。
-- 伪造测试通过、外部服务调用成功或交付证据。
 
 ## 运行中监控面板
 
@@ -213,145 +193,3 @@ while true; do
   sleep 5
 done
 ```
-
-说明：
-
-- `/codex:status` 是 Claude Code slash command，不能直接在普通 shell 中执行。
-- shell 监控只能观察 Codex 进程、日志、最近文件和 subagent jsonl 中是否出现 `/codex:rescue`。
-- 真正的 Codex job 状态需要在 Claude Code 里输入：
-
-```text
-/codex:status
-/codex:result
-```
-
-## 如何确认团队 Agent 是否工作
-
-### 1. 查看当前运行中的 Agent
-
-在 Claude Code 中：
-
-```text
-/agents
-```
-
-如果显示：
-
-```text
-No subagents are currently running.
-```
-
-只代表当前没有正在运行的子 Agent，不代表之前没跑过。
-
-### 2. 查看历史子 Agent 文件
-
-```bash
-find ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2 \
-  -name "agent-*.meta.json" -o -name "agent-*.jsonl" 2>/dev/null | sort
-```
-
-查看最近输出：
-
-```bash
-for f in ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2/*/subagents/agent-*.jsonl; do
-  echo "==== $f"
-  tail -80 "$f"
-done
-```
-
-搜索团队角色和 Codex 调用：
-
-```bash
-grep -R "sw-architect\|sw-developer\|sw-tester\|sw-code-reviewer\|sw-delivery-reviewer\|/codex:rescue\|/codex:review\|/codex:adversarial-review" \
-  ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2 2>/dev/null | tail -120
-```
-
-### 3. 查看项目证据
-
-```bash
-cd /home/ubuntu/1.project/todo-lite-2
-tail -80 team-log.md
-cat dev-plan.md
-find test-reports -maxdepth 2 -type f -print 2>/dev/null
-cat delivery-report.md 2>/dev/null
-```
-
-可信的完成证据应包括：
-
-- `team-log.md` 记录每个阶段。
-- `dev-plan.md` 填入 `DEV_ID`、`TEST_ID`、`REVIEW_ID`。
-- `test-reports/` 下有测试和审查报告。
-- `delivery-report.md` 有最终判定和验收映射。
-- Claude subagent jsonl 中能搜到 `sw-*` 和 `/codex:*` 记录。
-
-## Codex 使用方式
-
-`codex-software-worker` skill 基于 `openai/codex-plugin-cc`：
-
-- 开发/修复：`/codex:rescue`
-- 普通审查：`/codex:review`
-- 挑战式审查：`/codex:adversarial-review`
-- 后台状态：`/codex:status`
-- 结果读取：`/codex:result`
-
-如果没有显式 `--model`，Codex 使用 `~/.codex/config.toml` 中的默认模型。例如：
-
-```toml
-model = "gpt-5.5"
-model_reasoning_effort = "high"
-```
-
-## 常见问题
-
-### 为什么一直问 Bash 是否批准？
-
-当前 Claude Code 不是免批准模式。建议在可信 VM 中重启：
-
-```bash
-claude --permission-mode bypassPermissions
-```
-
-或：
-
-```bash
-claude --dangerously-skip-permissions
-```
-
-### 我按 Esc 中断了怎么办？
-
-不要从头开始，先恢复状态：
-
-```text
-我刚才中断了自动执行。请不要从头开始，也不要主 Agent 直接写业务代码。
-请读取 team-log.md、dev-plan.md、test-reports/ 和最近 subagent 结果，判断当前停在哪个任务，然后继续自动交付。
-```
-
-### 怎么默认中文？
-
-在启动提示中加入：
-
-```text
-默认全程使用中文和我沟通；所有团队文档、日志、测试报告和交付报告也使用中文。代码、命令、文件名和错误信息保持原文。
-```
-
-### `/codex:status` 能在 shell 里跑吗？
-
-不能。它是 Claude Code slash command，只能在 Claude Code 中输入。普通 shell 只能通过进程、日志、`.codex` 文件和 subagent jsonl 间接观察。
-
-## 交付产物清单
-
-每个项目完成后应至少包含：
-
-```text
-requirements.md
-architecture.md
-dev-plan.md
-testing-strategy.md
-lessons-learned.md
-team-log.md
-test-reports/
-delivery-report.md
-README.md
-```
-
-其中 `delivery-report.md` 是最终验收入口，`team-log.md` 是过程追踪入口。

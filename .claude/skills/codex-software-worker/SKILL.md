@@ -197,6 +197,8 @@ description: Use inside Claude Code subagents when they need to delegate softwar
 项目目录：{PROJECT_DIR}
 角色：{开发/测试/审查/架构/交付}
 任务：{任务ID} {任务标题}
+需求映射：{Rxx}
+验收映射：{Axx}
 
 目标：
 {一句话说明要 Codex 完成什么}
@@ -216,7 +218,8 @@ description: Use inside Claude Code subagents when they need to delegate softwar
 
 必须遵守：
 - 现有代码风格
-- requirements.md 的验收标准
+- requirements.md 中对应需求 ID 和验收标准 ID
+- 不实现 requirements.md 未列出的额外功能、行为、接口、输出格式或交付物
 - architecture.md 的模块边界
 - testing-strategy.md 的验证要求
 
@@ -263,9 +266,10 @@ description: Use inside Claude Code subagents when they need to delegate softwar
 
 要求：
 1. 一次性修复所有 FAIL 项。
-2. 不修改无关文件。
-3. 运行必要自测。
-4. 返回修改文件列表和测试结果。
+2. 按失败报告对应的需求 ID / 验收标准 ID 修复，不顺带添加需求外功能。
+3. 不修改无关文件。
+4. 运行必要自测。
+5. 返回修改文件列表、已修复需求 ID / 验收标准 ID 和测试结果。
 ```
 
 ---
@@ -276,7 +280,7 @@ Codex 返回后，当前子 Agent 必须：
 
 1. 如果是后台任务，先用 `/codex:status` 确认完成，再用 `/codex:result` 获取结果。
 2. 检查 Codex 是否修改或建议修改了越权文件。
-3. 检查结果是否满足当前任务验收标准。
+3. 检查结果是否满足当前任务对应需求 ID 和验收标准 ID。
 4. 运行或记录必要验证命令。
 5. 将测试/审查/交付结论写入对应报告。
 6. 只向主 Agent 返回精简摘要，不粘贴 Codex 完整输出。
