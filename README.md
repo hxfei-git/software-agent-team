@@ -143,53 +143,17 @@ PROJECT_DIR=/home/ubuntu/1.project/my-project
 
 建议另开一个 SSH 窗口，用下面脚本观察团队是否在工作。
 
-将 `PROJECT_DIR` 和 `PROJECT_SLUG` 改成你的项目。路径 `/home/ubuntu/1.project/todo-lite-2` 对应的 Claude 项目 slug 通常是 `-home-ubuntu-1-project-todo-lite-2`。
-
 ```bash
-cd /home/ubuntu/1.project/todo-lite-2
-
 while true; do
   clear
-
   echo "== files =="
   find . -maxdepth 3 -type f | sort
-
   echo
   echo "== team-log tail =="
   tail -30 team-log.md 2>/dev/null
-
-  echo
-  echo "== dev-plan =="
-  sed -n '1,120p' dev-plan.md 2>/dev/null
-
-  echo
-  echo "== test reports =="
-  find test-reports -maxdepth 2 -type f -print 2>/dev/null | sort
-
   echo
   echo "== subagents =="
-  find ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2 \
-    -name "agent-*.meta.json" 2>/dev/null | sort | tail -10
-
-  echo
-  echo "== subagent mentions: codex / sw-* =="
-  grep -R "sw-architect\|sw-developer\|sw-tester\|sw-code-reviewer\|sw-delivery-reviewer\|/codex:rescue\|/codex:review\|/codex:adversarial-review\|codex" \
-    ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2 2>/dev/null | tail -20
-
-  echo
-  echo "== codex processes =="
-  ps -ef | grep -E "codex|node.*codex" | grep -v grep || true
-
-  echo
-  echo "== codex recent files =="
-  find ~/.codex -maxdepth 4 -type f -printf '%T@ %TY-%Tm-%Td %TH:%TM:%TS %p\n' 2>/dev/null \
-    | sort -nr | head -15 \
-    | cut -d' ' -f2-
-
-  echo
-  echo "== codex log tail =="
-  tail -30 ~/.codex/log/codex-tui.log 2>/dev/null
-
+  find ~/.claude/projects/-home-ubuntu-1-project-todo-lite-2 -name "agent-*.meta.json" 2>/dev/null | sort | tail -10
   sleep 5
 done
 ```
